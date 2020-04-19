@@ -18,7 +18,6 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
-#include <QtWidgets/QOpenGLWidget>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QTabWidget>
@@ -38,10 +37,13 @@ public:
     QLabel *depthFrame;
     QWidget *verticalLayoutWidget;
     QVBoxLayout *verticalLayout;
-    QPushButton *startButton;
+    QPushButton *startCameraButton;
     QPushButton *savePicButton;
     QPushButton *saveCloudButton;
     QWidget *tab_continue;
+    QPushButton *beginButton;
+    QWidget *continue_widget;
+    QLabel *label_11;
     QWidget *tab_import;
     QWidget *verticalLayoutWidget_2;
     QVBoxLayout *verticalLayout_2;
@@ -65,7 +67,6 @@ public:
     QLabel *label_7;
     QLineEdit *lineEdit_5;
     QPushButton *selectPointCloudFileButton;
-    QOpenGLWidget *openGLWidget;
     QFrame *line_3;
     QWidget *verticalLayoutWidget_4;
     QVBoxLayout *verticalLayout_4;
@@ -76,6 +77,8 @@ public:
     QLineEdit *lineEdit_7;
     QLabel *label_10;
     QPushButton *selectPointCloudFileButton_2;
+    QWidget *single_widge;
+    QLabel *label_hit;
     QMenuBar *menubar;
     QStatusBar *statusbar;
 
@@ -107,10 +110,10 @@ public:
         verticalLayout->setSpacing(6);
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
         verticalLayout->setContentsMargins(0, 0, 0, 0);
-        startButton = new QPushButton(verticalLayoutWidget);
-        startButton->setObjectName(QString::fromUtf8("startButton"));
+        startCameraButton = new QPushButton(verticalLayoutWidget);
+        startCameraButton->setObjectName(QString::fromUtf8("startCameraButton"));
 
-        verticalLayout->addWidget(startButton);
+        verticalLayout->addWidget(startCameraButton);
 
         savePicButton = new QPushButton(verticalLayoutWidget);
         savePicButton->setObjectName(QString::fromUtf8("savePicButton"));
@@ -125,6 +128,15 @@ public:
         tabWidget->addTab(tab_camera, QString());
         tab_continue = new QWidget();
         tab_continue->setObjectName(QString::fromUtf8("tab_continue"));
+        beginButton = new QPushButton(tab_continue);
+        beginButton->setObjectName(QString::fromUtf8("beginButton"));
+        beginButton->setGeometry(QRect(870, 400, 121, 71));
+        continue_widget = new QWidget(tab_continue);
+        continue_widget->setObjectName(QString::fromUtf8("continue_widget"));
+        continue_widget->setGeometry(QRect(30, 20, 800, 640));
+        label_11 = new QLabel(tab_continue);
+        label_11->setObjectName(QString::fromUtf8("label_11"));
+        label_11->setGeometry(QRect(890, 350, 81, 31));
         tabWidget->addTab(tab_continue, QString());
         tab_import = new QWidget();
         tab_import->setObjectName(QString::fromUtf8("tab_import"));
@@ -240,9 +252,6 @@ public:
 
         verticalLayout_3->addWidget(selectPointCloudFileButton);
 
-        openGLWidget = new QOpenGLWidget(tab_import);
-        openGLWidget->setObjectName(QString::fromUtf8("openGLWidget"));
-        openGLWidget->setGeometry(QRect(0, 30, 800, 640));
         line_3 = new QFrame(tab_import);
         line_3->setObjectName(QString::fromUtf8("line_3"));
         line_3->setGeometry(QRect(790, 0, 20, 720));
@@ -294,6 +303,13 @@ public:
 
         verticalLayout_4->addWidget(selectPointCloudFileButton_2);
 
+        single_widge = new QWidget(tab_import);
+        single_widge->setObjectName(QString::fromUtf8("single_widge"));
+        single_widge->setGeometry(QRect(0, 30, 800, 640));
+        label_hit = new QLabel(tab_import);
+        label_hit->setObjectName(QString::fromUtf8("label_hit"));
+        label_hit->setEnabled(true);
+        label_hit->setGeometry(QRect(820, 640, 161, 31));
         tabWidget->addTab(tab_import, QString());
         MainWindow->setCentralWidget(centralwidget);
         menubar = new QMenuBar(MainWindow);
@@ -306,7 +322,7 @@ public:
 
         retranslateUi(MainWindow);
 
-        tabWidget->setCurrentIndex(2);
+        tabWidget->setCurrentIndex(0);
 
 
         QMetaObject::connectSlotsByName(MainWindow);
@@ -318,10 +334,12 @@ public:
         clolorframe->setText(QCoreApplication::translate("MainWindow", "clolorframe", nullptr));
         irFrame->setText(QCoreApplication::translate("MainWindow", "irFrame", nullptr));
         depthFrame->setText(QCoreApplication::translate("MainWindow", "depthFrame", nullptr));
-        startButton->setText(QCoreApplication::translate("MainWindow", "Start", nullptr));
+        startCameraButton->setText(QCoreApplication::translate("MainWindow", "Start", nullptr));
         savePicButton->setText(QCoreApplication::translate("MainWindow", "savePic", nullptr));
         saveCloudButton->setText(QCoreApplication::translate("MainWindow", "saveCloud", nullptr));
         tabWidget->setTabText(tabWidget->indexOf(tab_camera), QCoreApplication::translate("MainWindow", "\346\267\261\345\272\246\347\233\270\346\234\272", nullptr));
+        beginButton->setText(QCoreApplication::translate("MainWindow", "\345\274\200\345\247\213", nullptr));
+        label_11->setText(QCoreApplication::translate("MainWindow", "\345\205\210\345\257\274\345\205\245\346\250\241\345\236\213 ", nullptr));
         tabWidget->setTabText(tabWidget->indexOf(tab_continue), QCoreApplication::translate("MainWindow", "\350\277\236\347\273\255\351\205\215\345\207\206 ", nullptr));
         label_3->setText(QCoreApplication::translate("MainWindow", "stl,obj,ply\346\240\274\345\274\217CAD\346\250\241\345\236\213\346\226\207\344\273\266\345\244\232\350\247\206\350\247\222\351\207\207\346\240\267", nullptr));
         label->setText(QCoreApplication::translate("MainWindow", "\345\210\206\350\276\250\347\216\207", nullptr));
@@ -331,18 +349,19 @@ public:
         selectCADFileButton->setText(QCoreApplication::translate("MainWindow", "\351\200\211\346\213\251\346\250\241\345\236\213\346\226\207\344\273\266\345\271\266\345\274\200\345\247\213\351\207\207\346\240\267", nullptr));
         label_4->setText(QCoreApplication::translate("MainWindow", "pcd,ply\347\202\271\344\272\221\347\224\237\346\210\220\347\202\271\345\257\271\347\211\271\345\276\201", nullptr));
         label_5->setText(QCoreApplication::translate("MainWindow", "\347\202\271\344\272\221\351\207\207\346\240\267\346\240\205\346\240\274", nullptr));
-        lineEdit_3->setText(QCoreApplication::translate("MainWindow", "0.04", nullptr));
+        lineEdit_3->setText(QCoreApplication::translate("MainWindow", "0.03", nullptr));
         label_6->setText(QCoreApplication::translate("MainWindow", "\350\267\235\347\246\273\347\246\273\346\225\243\346\255\245\351\225\277", nullptr));
-        lineEdit_4->setText(QCoreApplication::translate("MainWindow", "0.04", nullptr));
+        lineEdit_4->setText(QCoreApplication::translate("MainWindow", "0.03", nullptr));
         label_7->setText(QCoreApplication::translate("MainWindow", "\350\247\222\345\272\246\347\246\273\346\225\243\346\255\245\351\225\277", nullptr));
         lineEdit_5->setText(QCoreApplication::translate("MainWindow", "30", nullptr));
         selectPointCloudFileButton->setText(QCoreApplication::translate("MainWindow", "\351\200\211\346\213\251\347\202\271\344\272\221\347\224\237\346\210\220PPF", nullptr));
         label_8->setText(QCoreApplication::translate("MainWindow", "\351\200\211\346\213\251\345\234\272\346\231\257\347\202\271\344\272\221\350\277\233\350\241\214\345\214\271\351\205\215", nullptr));
         label_9->setText(QCoreApplication::translate("MainWindow", "\347\202\271\344\272\221\351\207\207\346\240\267\346\240\205\346\240\274", nullptr));
-        lineEdit_6->setText(QCoreApplication::translate("MainWindow", "0.04", nullptr));
-        lineEdit_7->setText(QCoreApplication::translate("MainWindow", "1", nullptr));
+        lineEdit_6->setText(QCoreApplication::translate("MainWindow", "0.05", nullptr));
+        lineEdit_7->setText(QCoreApplication::translate("MainWindow", "0.3", nullptr));
         label_10->setText(QCoreApplication::translate("MainWindow", "\345\234\272\346\231\257\347\202\271\346\257\224\344\276\213", nullptr));
         selectPointCloudFileButton_2->setText(QCoreApplication::translate("MainWindow", "\351\200\211\346\213\251\347\202\271\344\272\221\350\277\233\350\241\214\345\214\271\351\205\215", nullptr));
+        label_hit->setText(QCoreApplication::translate("MainWindow", "\350\257\267\345\205\210\347\202\271\345\207\273\345\267\246\344\276\247continue", nullptr));
         tabWidget->setTabText(tabWidget->indexOf(tab_import), QCoreApplication::translate("MainWindow", "\345\215\225\345\270\247\351\205\215\345\207\206\345\217\212\346\250\241\345\236\213\345\257\274\345\205\245", nullptr));
     } // retranslateUi
 

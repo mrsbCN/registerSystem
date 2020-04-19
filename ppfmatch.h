@@ -17,16 +17,39 @@
 #include <omp.h>
 #include "xxh3.h"
 #include <hash_map>
-
+#include <iostream>
+#include <boost/smart_ptr.hpp>
 using namespace std;
 using namespace __gnu_cxx;
 #define hashSeed 42
 
 typedef struct THash {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Eigen::Vector4i id;
     int i, ppfInd;
     double angle;
 } THash;
+
+typedef struct Pose_3D
+{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    double alpha;
+    double residual;
+    double angle;
+    size_t modelIndex;
+    size_t numVotes;
+    Eigen::Matrix4d pose;
+    Eigen::Vector3d t;
+    Eigen::Vector4d q;
+
+} Pose_3D;
+
+typedef struct Cluster
+{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    std::vector<Pose_3D,Eigen::aligned_allocator<Pose_3D>> poses;
+    size_t accu_votes;
+} Cluster;
 
 //1 define the hash function
 struct hashPPF {
@@ -48,22 +71,23 @@ Q_OBJECT
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    explicit PPFmatch(const double samplingStep = 0.04, const double distanceStep = 0.04, const double numAngles = 30,
+    explicit PPFmatch(const double samplingStep = 0.04, const double distanceStep = 0.04, const int numAngles = 30,
                       QObject *parent = nullptr);
 
     ~PPFmatch();
-    void setParameter(const double samplingStep, const double distanceStep, const double numAngles);
+    void setParameter(const double samplingStep, const double distanceStep, const int numAngles);
     void train(const QString &fileName);
 
-    void match(const QString &fileName);
+    void match(const QString &fileName,std::vector<Pose_3D,Eigen::aligned_allocator<Pose_3D>>& results,const double relativeSceneSampleStep, const double relativeSceneDistance);
     void loadScenePointCloudFile(const QString &fileName);
     void hashtableWrite(QString hashFile);
 
 protected:
     double angleStep, angleStepRadians, distanceStep;
-    double samplingStepRelative, angleStepRelative, distanceStepRelative;
+    double samplingStepRelative, distanceStepRelative;
+
     Eigen::Vector4d samplingStep;
-    int numRefPoints;
+    int numAngle,numRefPoints;
     open3d::geometry::AxisAlignedBoundingBox modelBox;
     double modelDiameter;
     typedef hash_multimap<Eigen::Vector4i, THash, hashPPF, equalPPF> hashMapType;
@@ -77,17 +101,19 @@ protected:
 
     void loadModelPointCloudFile(const QString &fileName);
 
-    void computePPFFeature(const Eigen::Vector3d &pt1, const Eigen::Vector3d &nor1, const Eigen::Vector3d &pt2,
+    static void computePPFFeature(const Eigen::Vector3d &pt1, const Eigen::Vector3d &nor1, const Eigen::Vector3d &pt2,
                            const Eigen::Vector3d &nor2, Eigen::Vector4d &f);
 
-    void computePPFFeatureWithout1(const Eigen::Vector3d &pt1, const Eigen::Vector3d &nor1, const Eigen::Vector3d &pt2,
-                                   const Eigen::Vector3d &nor2, Eigen::Vector4d &f);
+    static double computeAlpha(const Eigen::Vector3d &pt1, const Eigen::Vector3d &nor1, const Eigen::Vector3d &pt2);
 
-    double computeAlpha(const Eigen::Vector3d &pt1, const Eigen::Vector3d &nor1, const Eigen::Vector3d &pt2);
+    static void computeTransformRT(const Eigen::Vector3d &p1, const Eigen::Vector3d &n1, Eigen::Matrix3d &R, Eigen::Vector3d &t);
 
-    void
-    computetransformRT(const Eigen::Vector3d &p1, const Eigen::Vector3d &n1, Eigen::Matrix3d &R, Eigen::Vector3d &t);
-
+    static void rtToPose(const Eigen::Matrix3d& R, const Eigen::Vector3d& t, Eigen::Matrix4d& Pose);
+    static void getUnitXRotation(double angle, Eigen::Matrix3d& Rx);
+    static bool Pose_3DClusters(const Cluster& a, const Cluster& b);
+    static bool pose_3DCompare(const Pose_3D& a, const Pose_3D& b);
+    void clusterPoses(std::vector<Pose_3D,Eigen::aligned_allocator<Pose_3D>>& poseList, int numPoses, std::vector<Pose_3D,Eigen::aligned_allocator<Pose_3D>> &finalPoses);
+    bool matchPose(const Pose_3D& sourcePose, const Pose_3D& targetPose);
 signals:
 
 };

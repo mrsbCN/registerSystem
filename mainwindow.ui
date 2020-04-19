@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_camera">
      <attribute name="title">
@@ -83,7 +83,7 @@
         <number>6</number>
        </property>
        <item>
-        <widget class="QPushButton" name="startButton">
+        <widget class="QPushButton" name="startCameraButton">
          <property name="text">
           <string>Start</string>
          </property>
@@ -110,6 +110,42 @@
      <attribute name="title">
       <string>连续配准 </string>
      </attribute>
+     <widget class="QPushButton" name="beginButton">
+      <property name="geometry">
+       <rect>
+        <x>870</x>
+        <y>400</y>
+        <width>121</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>开始</string>
+      </property>
+     </widget>
+     <widget class="QWidget" name="continue_widget" native="true">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>20</y>
+        <width>800</width>
+        <height>640</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_11">
+      <property name="geometry">
+       <rect>
+        <x>890</x>
+        <y>350</y>
+        <width>81</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>先导入模型 </string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_import">
      <attribute name="title">
@@ -258,7 +294,7 @@
          <item row="0" column="1">
           <widget class="QLineEdit" name="lineEdit_3">
            <property name="text">
-            <string>0.04</string>
+            <string>0.03</string>
            </property>
           </widget>
          </item>
@@ -272,7 +308,7 @@
          <item row="1" column="1">
           <widget class="QLineEdit" name="lineEdit_4">
            <property name="text">
-            <string>0.04</string>
+            <string>0.03</string>
            </property>
           </widget>
          </item>
@@ -300,16 +336,6 @@
         </widget>
        </item>
       </layout>
-     </widget>
-     <widget class="QOpenGLWidget" name="openGLWidget">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>30</y>
-        <width>800</width>
-        <height>640</height>
-       </rect>
-      </property>
      </widget>
      <widget class="Line" name="line_3">
       <property name="geometry">
@@ -365,14 +391,14 @@
          <item row="0" column="1">
           <widget class="QLineEdit" name="lineEdit_6">
            <property name="text">
-            <string>0.04</string>
+            <string>0.05</string>
            </property>
           </widget>
          </item>
          <item row="1" column="1">
           <widget class="QLineEdit" name="lineEdit_7">
            <property name="text">
-            <string>1</string>
+            <string>0.3</string>
            </property>
           </widget>
          </item>
@@ -396,6 +422,32 @@
         </widget>
        </item>
       </layout>
+     </widget>
+     <widget class="QWidget" name="single_widge" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>30</y>
+        <width>800</width>
+        <height>640</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_hit">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>820</x>
+        <y>640</y>
+        <width>161</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>请先点击左侧continue</string>
+      </property>
      </widget>
     </widget>
    </widget>
