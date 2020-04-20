@@ -43,11 +43,36 @@ void kinect_dk::changeStatus(bool isStart) {
 }
 
 void kinect_dk::savePic() {
-
+    if ( isConected) {
+        std::shared_ptr<open3d::geometry::RGBDImage> rgbdImage = sensor->CaptureFrame(enable_align_depth_to_color);
+        do {
+            rgbdImage = sensor->CaptureFrame(enable_align_depth_to_color);
+        } while (rgbdImage == nullptr);
+        qint64 time = QDateTime::currentMSecsSinceEpoch();
+        QString fileName = "/home/mrsb/" + tr("%1").arg(time) + "_rgb.png";
+        QString fileName2 = "/home/mrsb/" + tr("%1").arg(time) + "_depth.png";
+        open3d::io::WriteImageToPNG(fileName.toStdString(),rgbdImage->color_,100);
+        open3d::io::WriteImageToPNG(fileName2.toStdString(),rgbdImage->depth_,100);
+    }
 }
 
 void kinect_dk::savePointCloud() {
-
+    if (isConected) {
+        do {
+            rgbdImage = sensor->CaptureFrame(enable_align_depth_to_color);
+        } while (rgbdImage == nullptr);
+        pcd = open3d::geometry::PointCloud::CreateFromDepthImage(rgbdImage->depth_, intrinsic,
+                                                                 Eigen::Matrix4d::Identity(),
+                                                                 1.0, 1000.0, 1, true);
+        //pcd = pcd->VoxelDownSample(0.01f);
+        std::tuple<std::shared_ptr<open3d::geometry::PointCloud>, std::vector<size_t>> temp = pcd->RemoveStatisticalOutliers(
+                30, 0.1);
+        pcd = std::get<0>(temp);
+        std::cout<<pcd->points_.size()<<std::endl;
+        qint64 time = QDateTime::currentMSecsSinceEpoch();
+        QString fileName = "/home/mrsb/" + tr("%1").arg(time) + ".ply";
+        open3d::io::WritePointCloudToPLY(fileName.toStdString(), *pcd);
+    }
 }
 
 void kinect_dk::captureFrame() {
@@ -70,6 +95,7 @@ void kinect_dk::captureDepth() {
         }while (rgbdImage == nullptr);
         pcd = open3d::geometry::PointCloud::CreateFromDepthImage(rgbdImage->depth_, intrinsic, Eigen::Matrix4d::Identity(),
                                                                  1.0, 1000.0, 1, true);
+
         //pcd = pcd->VoxelDownSample(0.01f);
         qint64 time = QDateTime::currentMSecsSinceEpoch();
         QString fileName= "/dev/shm/"+tr("%1").arg(time)+".ply";

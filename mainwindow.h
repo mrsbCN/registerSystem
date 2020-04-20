@@ -55,13 +55,14 @@ private:
     surfaceMatch *sfm;
     HTuple singleWindowHandle, continueWindowHandle;
     HTuple hv_ObjectModel3D, hv_ObjectScene3D, hv_ObjectModel3DRigidTrans;
-    HTuple hv_Status, hv_PoseOut, matchPose, matchScore,CamPose;
+    HTuple hv_Status, hv_PoseOut, matchPose,CamPose;
     HTuple *hv_ObjectScenePtr;
     QFuture<void> f;
+    double matchScore;
 
     void renderModel(const QString &fileName, HTuple &WindowHandle);
 
-    void renderScene(const QString &fileName, HTuple &WindowHandle);
+    void renderScene(HTuple &WindowHandle);
 
 protected slots://槽函数
     void onStartCameraButtonClicked();
@@ -80,7 +81,7 @@ protected slots://槽函数
 
     void continueRead(const QString &pointCloudFile);
 
-    void onRegisterComplete(double Pose, double Score);
+    void onRegisterComplete(QVariant Pose, double Score);
 
     void test();
 

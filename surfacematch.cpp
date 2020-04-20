@@ -3437,6 +3437,7 @@ void visualize_object_model_3d(bool isClickable, HTuple hv_WindowHandle, HTuple 
             while (0 != 1) {
                 //
                 //Check graphic event
+                QCoreApplication::processEvents();
                 try {
                     GetMpositionSubPix(hv_WindowHandle, &hv_GraphButtonRow, &hv_GraphButtonColumn,
                                        &hv_GraphButton);
@@ -3449,6 +3450,7 @@ void visualize_object_model_3d(bool isClickable, HTuple hv_WindowHandle, HTuple 
                             //Wait until the continue button has been released
                             if (0 != (int(hv_WaitForButtonRelease == HTuple("true")))) {
                                 while (0 != 1) {
+                                    QCoreApplication::processEvents();
                                     GetMpositionSubPix(hv_WindowHandle, &hv_GraphButtonRow, &hv_GraphButtonColumn,
                                                        &hv_GraphButton);
                                     if (0 !=
@@ -3567,7 +3569,7 @@ surfaceMatch::surfaceMatch(QObject *parent) : QObject(parent) {
     // file was stored with local-8-bit encoding
     //   -> set the interface encoding accordingly
     SetHcppInterfaceStringEncodingIsUtf8(false);
-
+    qRegisterMetaType<QVariant>("QVariant");
     // Default settings used in HDevelop (can be omitted)
     SetSystem("width", 512);
     SetSystem("height", 512);
@@ -3579,17 +3581,24 @@ surfaceMatch::surfaceMatch(QObject *parent) : QObject(parent) {
 
 void surfaceMatch::train(QFuture<void> &f, HTuple &hv_ObjectModel3D, double RelSamplingDistance) {
     //f.waitForFinished();
+    SurfaceNormalsObjectModel3d(hv_ObjectModel3D, "mls", HTuple(), HTuple(),
+                                &hv_temp);
+    //Create surface model
+    CreateSurfaceModel(hv_temp, 0.03, "model_invert_normals", "true",
+                       &hv_SurfaceModelID);
     CreateSurfaceModel(hv_ObjectModel3D, RelSamplingDistance, HTuple(), HTuple(), &hv_SurfaceModelID);
+
     isTrained = true;
 }
 
-void surfaceMatch::match(HTuple &hv_ObjectScene3D, double RelSamplingDistance, double KeyPointFraction, HTuple &Pose,
-                         HTuple &Score) { //关键点的比例
+double surfaceMatch::match(HTuple &hv_ObjectScene3D, double RelSamplingDistance, double KeyPointFraction, HTuple &Pose) { //关键点的比例
     if (isTrained) {
         FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3D, RelSamplingDistance, KeyPointFraction, 0.2, "false",
-                         "num_matches", 10, &hv_Pose, &Score, &hv_SurfaceMatchingResultID);
+                         ((HTuple("num_matches").Append("scene_normal_computation")).Append("pose_ref_scoring_dist_rel")),
+                         ((HTuple(3).Append("mls")).Append(0.03)), &hv_Pose, &hv_Score, &hv_SurfaceMatchingResultID);
         RefineSurfaceModelPose(hv_SurfaceModelID, hv_ObjectScene3D, hv_Pose, 0, "false",
                                HTuple(), HTuple(), &Pose, &hv_Score1, &hv_SurfaceMatchingResultID1);
+        return hv_Score.ToDArr()[0];
     }
 
 }
@@ -3597,15 +3606,19 @@ void surfaceMatch::match(HTuple &hv_ObjectScene3D, double RelSamplingDistance, d
 void surfaceMatch::continueMatch(double RelSamplingDistance, double KeyPointFraction) {
     if (isTrained) {
         while (isStartMatch) {
+            QCoreApplication::processEvents();
             readMutex.lock();
             hv_ObjectScene3DClone = hv_ObjectScene3D.Clone();
             readMutex.unlock();
             FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3DClone, RelSamplingDistance, KeyPointFraction, 0.2, "false",
-                             "num_matches", 10, &hv_Pose, &hv_Score, &hv_SurfaceMatchingResultID);
+                             ((HTuple("num_matches").Append("scene_normal_computation")).Append("pose_ref_scoring_dist_rel")),
+                             ((HTuple(3).Append("mls")).Append(0.03))
+                             , &hv_Pose, &hv_Score, &hv_SurfaceMatchingResultID);
             RefineSurfaceModelPose(hv_SurfaceModelID, hv_ObjectScene3DClone, hv_Pose, 0, "false",
                                    HTuple(), HTuple(), &hv_Pose1, &hv_Score1, &hv_SurfaceMatchingResultID1);
             //再发回主线程
-            //emit registerComplete(poseVar,hv_Score1.ToDArr()[0]);
+            poseVar.setValue<HTuple>(hv_Pose1);
+            emit registerComplete(poseVar,hv_Score1.ToDArr()[0]);
         }
     }
 }

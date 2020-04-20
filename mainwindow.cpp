@@ -4,7 +4,7 @@
 MainWindow::MainWindow(QWidget *parent)
         : QMainWindow(parent), ui(new Ui::MainWindow) {
     SetHcppInterfaceStringEncodingIsUtf8(false);
-
+    qRegisterMetaType<QVariant>("QVariant");
     ui->setupUi(this);
     ui->label_hit->setVisible(false);
     ui->lineEdit->setValidator(new QIntValidator(50, 300, this));
@@ -36,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent)
     sfm->moveToThread(&m_surfaceMatchThread);
 
     connect(ui->startCameraButton, SIGNAL(clicked()), this, SLOT(onStartCameraButtonClicked()));
+    connect(ui->saveCloudButton,SIGNAL(clicked()),m_kinectDK,SLOT(savePointCloud()));
+    connect(ui->savePicButton,SIGNAL(clicked()),m_kinectDK,SLOT(savePic()));
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onTabClicked(int)));
     connect(ui->selectCADFileButton, SIGNAL(clicked()), this, SLOT(onSelectCADFileButtonClicked()));
     connect(ui->selectPointCloudFileButton, SIGNAL(clicked()), this, SLOT(onSelectPointCloudFileButtonClicked()));
@@ -52,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, SIGNAL(startMatch(double, double)), sfm,
             SLOT(continueMatch(double, double)));
 
-    //connect(sfm,SIGNAL(registerComplete(double, double )),this,SLOT(onRegisterComplete(double, double )));
+    connect(sfm,SIGNAL(registerComplete(QVariant, double )),this,SLOT(onRegisterComplete(QVariant, double )));
 
     m_kinectThread.start();
     m_surfaceMatchThread.start(QThread::HighPriority);
@@ -188,12 +190,12 @@ void MainWindow::onSelectSceneButtonClicked() {
         ui->label_hit->setVisible(false);
         double distanceStep = ui->lineEdit_6->text().toDouble();
         double scale = ui->lineEdit_7->text().toDouble();
-        ReadObjectModel3d(sceneFileName.toStdString().c_str(), "mm", HTuple(), HTuple(), &hv_ObjectScene3D,
+        ReadObjectModel3d(sceneFileName.toStdString().c_str(), "mm", HTuple(), HTuple(), hv_ObjectScenePtr,
                           &hv_Status);
-        sfm->match(hv_ObjectScene3D,distanceStep,scale,matchPose,matchScore);
+        matchScore = sfm->match(*hv_ObjectScenePtr,distanceStep,scale,matchPose);
         double * pp = matchPose.ToDArr();
         std::cout<<pp[0]<<" "<<pp[1]<<" "<<pp[2]<<" "<<std::endl;
-        renderScene(sceneFileName,singleWindowHandle);
+        renderScene(singleWindowHandle);
 
         }
 }
@@ -227,7 +229,6 @@ void MainWindow::TabCameraDisplay(const open3d::geometry::RGBDImage &rgbd) {
 
     ui->clolorframe->setPixmap(QPixmap::fromImage(colorImg));
     ui->depthFrame->setPixmap(QPixmap::fromImage(depthImg));
-    //std::cout<<ui->tabWidget->currentIndex()<<std::endl;
 }
 
 void MainWindow::continueRead(const QString &pointCloudFile) {
@@ -237,9 +238,6 @@ void MainWindow::continueRead(const QString &pointCloudFile) {
     ReadObjectModel3d(pointCloudFile.toStdString().c_str(), "mm", HTuple(), HTuple(), hv_ObjectScenePtr,
                       &hv_Status);
     sfm->readMutex.unlock();
-    visualize_object_model_3d(false,continueWindowHandle, *hv_ObjectScenePtr, HTuple(), CamPose, HTuple(), HTuple(), HTuple(),
-                              HTuple(), HTuple(),
-                              &hv_PoseOut);
     QFile fileTemp(pointCloudFile);
     fileTemp.remove();
     if(isTabContinueStart)
@@ -249,18 +247,18 @@ void MainWindow::continueRead(const QString &pointCloudFile) {
 void MainWindow::renderModel(const QString &fileName, HTuple &WindowHandle) {
     ReadObjectModel3d(fileName.toStdString().c_str(), "mm", HTuple(), HTuple(), &hv_ObjectModel3D,
                       &hv_Status);
-    visualize_object_model_3d(false,WindowHandle, hv_ObjectModel3D, HTuple(), HTuple(), HTuple(), HTuple(), HTuple(),
+    visualize_object_model_3d(true,WindowHandle, hv_ObjectModel3D, HTuple(), HTuple(), (HTuple("point_size").Append("disp_normals")), (HTuple(2).Append("true")), HTuple(),
                               HTuple(), HTuple(),
                               &hv_PoseOut);
 }
 
-void MainWindow::renderScene(const QString &fileName, HTuple &WindowHandle) {
+void MainWindow::renderScene(HTuple &WindowHandle) {
 
-    if(*(matchScore.ToDArr()) < 0.05)
+    if(matchScore < 0.1)
     {
-        std::cout<<*matchScore.ToDArr()<<std::endl;
+        std::cout<<matchScore<<std::endl;
         HTuple message = "Not Found";
-        visualize_object_model_3d(false,WindowHandle, hv_ObjectScene3D,
+        visualize_object_model_3d(false,WindowHandle, *hv_ObjectScenePtr,
                                   HTuple(), CamPose, HTuple(),
                                   HTuple(), HTuple(), message,
                                   HTuple(), &hv_PoseOut);
@@ -271,22 +269,26 @@ void MainWindow::renderScene(const QString &fileName, HTuple &WindowHandle) {
     HTuple hv_Colors;
     TupleGenConst(hv_NumResult, "green", &hv_Colors);
     HTuple hv_Indices = HTuple::TupleGenSequence(1,hv_NumResult,1);
+    HTuple hv_GemParamName = ("color_"+(HTuple(0).TupleConcat(hv_Indices))).TupleConcat("point_size_0");
+    HTuple hv_GemParamValue = (HTuple("gray").TupleConcat(hv_Colors)).TupleConcat(1.0);
+    HTuple hv_showObject = (*hv_ObjectScenePtr).TupleConcat(hv_ObjectModel3DRigidTrans);
+/*    if (HDevWindowStack::IsOpen())
+        ClearWindow(HDevWindowStack::GetActive());*/
+    std::cout<<matchPose.ToDArr()[0]<<std::endl;
 
-    if (HDevWindowStack::IsOpen())
-        ClearWindow(HDevWindowStack::GetActive());
-
-    visualize_object_model_3d(false,WindowHandle, hv_ObjectScene3D.TupleConcat(hv_ObjectModel3DRigidTrans),
-                              HTuple(), HTuple(), ("color_"+(HTuple(0).TupleConcat(hv_Indices))).TupleConcat("point_size_0"),
-                              (HTuple("gray").TupleConcat(hv_Colors)).TupleConcat(1.0), HTuple(), HTuple(),
+    visualize_object_model_3d(false,WindowHandle, hv_showObject,
+                              HTuple(), CamPose, hv_GemParamName,
+                              hv_GemParamValue, HTuple(), HTuple(),
                               HTuple(), &hv_PoseOut);
 
 }
 
-void MainWindow::onRegisterComplete(double Pose, double Score){
+void MainWindow::onRegisterComplete(QVariant Pose, double Score){
     matchScore = Score;
-    //matchPose = Pose.value<HTuple>();
-    //std::cout<<matchPose[0].D()<<" "<<matchPose[1].D()<<std::endl;
+    matchPose = Pose.value<HTuple>();
+    std::cout<<matchScore<<std::endl;
 
+    renderScene(continueWindowHandle);
 }
 
 void MainWindow::test() {
