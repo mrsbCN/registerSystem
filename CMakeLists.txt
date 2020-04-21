@@ -19,23 +19,29 @@ set(halcon_libs "/usr/local/halcon/lib/x64-linux/libhalcon.so;/usr/local/halcon/
 # 找到对应的qt模块，名字为qmake中QT += <name>中的name首字母大写后加上Qt5前缀
 # 例如core为QtCore，你也可以去${CMAKE_PREFIX_PATH}的目录中找到正确的模块名
 # 如果不想使用系统qt，这样写（注意NO_DEFAULT_PATH参数，它会让find_package跳过系统目录的查找）：
-#[[FIND_PACKAGE(OpenMP REQUIRED)
+FIND_PACKAGE(OpenMP REQUIRED)
 if (OPENMP_FOUND)
     message("OPENMP FOUND")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif ()]]
+endif ()
+
 find_package(Qt5 COMPONENTS Gui Core Widgets Concurrent X11Extras REQUIRED)
 find_package(PCL 1.10.1 REQUIRED)
 find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake)
+find_package(OpenCV REQUIRED)
+find_package(k4a REQUIRED)
 list(APPEND Open3D_LIBRARIES dl)
 
 include_directories(${halcon_include_dirs})
 include_directories(${PCL_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${K4A_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 link_directories(${Open3D_LIBRARY_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
+link_directories(${K4A_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 
@@ -47,7 +53,10 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SRCFILE)
 
 # 通常这样设置就可以，如果你的项目包含qrc文件，那么需要将它们单独添加进来
 # 例如add_executable(test ${DIRS_SRCS} resources.qrc)
-add_executable(register ${SRCFILE})
+add_executable(register ${SRCFILE} )
 
 # 把对应Qt模块的库链接进程序
-target_link_libraries(register PUBLIC Qt5::Gui Qt5::Core Qt5::Widgets Qt5::Concurrent Qt5::X11Extras ${PCL_LIBRARIES} ${Open3D_LIBRARIES} ${halcon_libs})
+target_link_libraries(register PUBLIC   Qt5::Gui Qt5::Core Qt5::Widgets
+                                        Qt5::Concurrent Qt5::X11Extras
+                                        ${PCL_LIBRARIES} ${Open3D_LIBRARIES}
+                                        ${halcon_libs} ${OpenCV_LIBRARIES} k4a::k4a)

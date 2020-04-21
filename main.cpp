@@ -3,15 +3,15 @@
 #include <iostream>
 #include <QApplication>
 
-Q_DECLARE_METATYPE(open3d::geometry::RGBDImage);
-Q_DECLARE_METATYPE(open3d::geometry::Image);
+Q_DECLARE_METATYPE(cv::Mat);
+Q_DECLARE_METATYPE(k4a_capture_t);
 Q_DECLARE_METATYPE(QVariant);
 int main(int argc, char **argv) {
 
-    qRegisterMetaType<open3d::geometry::RGBDImage>("open3d::geometry::RGBDImage");
-    qRegisterMetaType<open3d::geometry::RGBDImage>("open3d::geometry::RGBDImage&");
-    qRegisterMetaType<open3d::geometry::Image>("open3d::geometry::Image");
-    qRegisterMetaType<open3d::geometry::Image>("open3d::geometry::Image&");
+    qRegisterMetaType<cv::Mat>("cv::Mat");
+    qRegisterMetaType<cv::Mat>("cv::Mat&");
+    qRegisterMetaType<k4a_capture_t>("k4a_capture_t");
+    qRegisterMetaType<k4a_capture_t>("k4a_capture_t&");
     QApplication a(argc, argv);
     MainWindow w;
     w.show();

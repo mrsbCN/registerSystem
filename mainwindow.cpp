@@ -24,7 +24,8 @@ MainWindow::MainWindow(QWidget *parent)
     sfm = new surfaceMatch();
 
     matcher = new PPFmatch();
-    m_kinectDK = new kinect_dk();
+    //m_kinectDK = new kinect_dk();
+    m_kinect = new kinect_thread();
     isTabCameraStart = false;
     isTabContinueStart = false;
     matchScore = 0.0f;
@@ -32,23 +33,25 @@ MainWindow::MainWindow(QWidget *parent)
     CreatePose(0, 0, 5.0,0, 0, 0, "Rp+T", "gba", "point", &CamPose);
     std::cout << "I'm working in thread:" << QThread::currentThreadId() << std::endl;
 
-    m_kinectDK->moveToThread(&m_kinectThread);
+    m_kinect->moveToThread(&m_kinectThread);
     sfm->moveToThread(&m_surfaceMatchThread);
 
     connect(ui->startCameraButton, SIGNAL(clicked()), this, SLOT(onStartCameraButtonClicked()));
-    connect(ui->saveCloudButton,SIGNAL(clicked()),m_kinectDK,SLOT(savePointCloud()));
-    connect(ui->savePicButton,SIGNAL(clicked()),m_kinectDK,SLOT(savePic()));
+    connect(ui->saveCloudButton,SIGNAL(clicked()),this,SLOT(onSavePointCloudClicked()));
+    connect(this,SIGNAL(startSavePointCloud()),m_kinect,SLOT(savePointCloud()),Qt::BlockingQueuedConnection);
+    connect(ui->savePicButton,SIGNAL(clicked()),this,SLOT(onSavePicClicked()));
+    connect(this,SIGNAL(startSavePic()),m_kinect,SLOT(savePic()),Qt::BlockingQueuedConnection);
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(onTabClicked(int)));
     connect(ui->selectCADFileButton, SIGNAL(clicked()), this, SLOT(onSelectCADFileButtonClicked()));
     connect(ui->selectPointCloudFileButton, SIGNAL(clicked()), this, SLOT(onSelectPointCloudFileButtonClicked()));
     connect(ui->selectPointCloudFileButton_2, SIGNAL(clicked()), this, SLOT(onSelectSceneButtonClicked()));
     connect(ui->beginButton, SIGNAL(clicked()), this, SLOT(onBeginButtonClicked()));
 
-    connect(this, SIGNAL(startRead()), m_kinectDK, SLOT(captureDepth()));
-    connect(this, SIGNAL(startRunning()), m_kinectDK, SLOT(captureFrame()));
-    connect(m_kinectDK, SIGNAL(sendFrame(const open3d::geometry::RGBDImage &)),
-            this, SLOT(TabCameraDisplay(const open3d::geometry::RGBDImage &)));
-    connect(m_kinectDK, SIGNAL(sendDepth(const QString &)),
+    connect(this, SIGNAL(startRead()), m_kinect, SLOT(captureDepth()));
+    connect(this, SIGNAL(startRunning()), m_kinect, SLOT(captureFrame()));
+    connect(m_kinect, SIGNAL(sendFrame(int ,cv::Mat)),
+            this, SLOT(TabCameraDisplay(int ,cv::Mat)));
+    connect(m_kinect, SIGNAL(sendDepth(const QString &)),
             this, SLOT(continueRead(const QString &)),Qt::QueuedConnection);
 
     connect(this, SIGNAL(startMatch(double, double)), sfm,
@@ -67,13 +70,13 @@ MainWindow::~MainWindow() {
     ClearWindow(continueWindowHandle);
     CloseWindow(singleWindowHandle);
     CloseWindow(continueWindowHandle);
-    m_kinectDK->changeStatus(false);
+    m_kinect->changeStatus(false);
     m_kinectThread.quit();
     m_kinectThread.wait();
     sfm->changeStatus(false);
     m_surfaceMatchThread.quit();
     m_surfaceMatchThread.wait();
-    delete m_kinectDK;
+    delete m_kinect;
     delete matcher;
     delete sfm;
 }
@@ -82,11 +85,11 @@ void MainWindow::onStartCameraButtonClicked() {
     if (!isTabCameraStart)//未开始状态,转为开始
     {
         ui->startCameraButton->setText("Stop");
-        m_kinectDK->changeStatus(true);
+        m_kinect->changeStatus(true);
         emit startRunning();
     } else {
         ui->startCameraButton->setText("Start");
-        m_kinectDK->changeStatus(false);
+        m_kinect->changeStatus(false);
     }
     isTabCameraStart = !isTabCameraStart;
 }
@@ -95,20 +98,20 @@ void MainWindow::onTabClicked(int current) {
     if (current == 0) {
         isTabContinueStart = false;
         ui->startCameraButton->setText("Start");
-        m_kinectDK->changeStatus(false);
+        m_kinect->changeStatus(false);
         ui->beginButton->setText("开始");
         sfm->changeStatus(false);
     } else if (current == 1) {
         isTabCameraStart = false;
         ui->startCameraButton->setText("Start");
-        m_kinectDK->changeStatus(false);
+        m_kinect->changeStatus(false);
         ui->beginButton->setText("开始");
         sfm->changeStatus(false);
     } else if (current == 2) {
         isTabCameraStart = false;
         isTabContinueStart = false;
         ui->startCameraButton->setText("Start");
-        m_kinectDK->changeStatus(false);
+        m_kinect->changeStatus(false);
         ui->beginButton->setText("开始");
         sfm->changeStatus(false);
     }
@@ -204,42 +207,81 @@ void MainWindow::onBeginButtonClicked(){
     if (!isTabContinueStart)//未开始状态,转为开始
     {
         ui->beginButton->setText("停止");
-        m_kinectDK->changeStatus(true);
+        m_kinect->changeStatus(true);
         sfm->changeStatus(true);
         emit startRead();
         double distanceStep = ui->lineEdit_6->text().toDouble();
         double scale = ui->lineEdit_7->text().toDouble();
-        QThread::msleep(1000);
         emit startMatch(distanceStep,scale);
     } else {
         ui->beginButton->setText("开始");
-        m_kinectDK->changeStatus(false);
+        m_kinect->changeStatus(false);
         sfm->changeStatus(false);
     }
     isTabContinueStart = !isTabContinueStart;
 }
 
-void MainWindow::TabCameraDisplay(const open3d::geometry::RGBDImage &rgbd) {
-    colorImg = QImage(rgbd.color_.data_.data(), rgbd.color_.width_, rgbd.color_.height_,
-                      rgbd.color_.width_ * rgbd.color_.num_of_channels_, QImage::Format_RGB888);
-    colorImg = colorImg.scaled(ui->clolorframe->width(), ui->clolorframe->height());
-    depthImg = QImage(rgbd.depth_.data_.data(), rgbd.depth_.width_, rgbd.depth_.height_,
-                      rgbd.depth_.width_ * rgbd.depth_.num_of_channels_, QImage::Format_Grayscale8);
-    depthImg = depthImg.scaled(ui->depthFrame->width(), ui->depthFrame->height());
+void MainWindow::onSavePointCloudClicked(){
+    if (isTabCameraStart)//如果已经开始就停掉
+    {
+        m_kinect->changeStatus(false);
+        emit startSavePointCloud();
+        m_kinect->changeStatus(true);
+        emit startRunning();
+    }
+    else{
+        emit startSavePointCloud();
+    }
+}
 
-    ui->clolorframe->setPixmap(QPixmap::fromImage(colorImg));
-    ui->depthFrame->setPixmap(QPixmap::fromImage(depthImg));
+void MainWindow::onSavePicClicked(){
+    if (isTabCameraStart)//未开始状态,转为开始
+    {
+        m_kinect->changeStatus(false);
+        emit startSavePic();
+        m_kinect->changeStatus(true);
+        emit startRunning();
+    }
+    else{
+        emit startSavePic();
+    }
+}
+
+void MainWindow::TabCameraDisplay(int type,cv::Mat mat) {
+    if (type == 1)
+    {
+        cv::cvtColor(mat,Rgb,CV_BGRA2RGBA);
+        cv::resize(Rgb,Rgb,cv::Size(480,320));
+        Img = QImage((const uchar*)(Rgb.data), Rgb.cols, Rgb.rows, Rgb.cols * Rgb.channels(), QImage::Format_RGBA8888);
+        ui->clolorframe->setPixmap(QPixmap::fromImage(Img));
+    }
+    else if(type == 2)
+    {
+        cv::cvtColor(mat,Rgb,CV_BGRA2RGBA);
+        cv::resize(Rgb,Rgb,cv::Size(480,320));
+        Img = QImage((const uchar*)(Rgb.data), Rgb.cols, Rgb.rows, Rgb.cols * Rgb.channels(), QImage::Format_RGBA8888);
+        ui->depthFrame->setPixmap(QPixmap::fromImage(Img));
+    }
+    else if(type == 3)
+    {
+        Rgb = mat;
+        cv::resize(Rgb,Rgb,cv::Size(480,320));
+        Img = QImage((const uchar*)(Rgb.data), Rgb.cols, Rgb.rows, Rgb.cols * Rgb.channels() * 2, QImage::Format_Grayscale16);
+        ui->irFrame->setPixmap(QPixmap::fromImage(Img));
+    }
+
 }
 
 void MainWindow::continueRead(const QString &pointCloudFile) {
-
     //互斥量
     sfm->readMutex.lock();
     ReadObjectModel3d(pointCloudFile.toStdString().c_str(), "mm", HTuple(), HTuple(), hv_ObjectScenePtr,
                       &hv_Status);
     sfm->readMutex.unlock();
+
     QFile fileTemp(pointCloudFile);
     fileTemp.remove();
+    renderScene(continueWindowHandle);
     if(isTabContinueStart)
         emit startRead();
 }
@@ -259,8 +301,8 @@ void MainWindow::renderScene(HTuple &WindowHandle) {
         std::cout<<matchScore<<std::endl;
         HTuple message = "Not Found";
         visualize_object_model_3d(false,WindowHandle, *hv_ObjectScenePtr,
-                                  HTuple(), CamPose, HTuple(),
-                                  HTuple(), HTuple(), message,
+                                  HTuple(), CamPose, "point_size_0",
+                                  1.0, HTuple(), message,
                                   HTuple(), &hv_PoseOut);
         return;
     }
@@ -288,7 +330,7 @@ void MainWindow::onRegisterComplete(QVariant Pose, double Score){
     matchPose = Pose.value<HTuple>();
     std::cout<<matchScore<<std::endl;
 
-    renderScene(continueWindowHandle);
+    //renderScene(continueWindowHandle);
 }
 
 void MainWindow::test() {

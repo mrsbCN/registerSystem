@@ -3605,20 +3605,21 @@ double surfaceMatch::match(HTuple &hv_ObjectScene3D, double RelSamplingDistance,
 
 void surfaceMatch::continueMatch(double RelSamplingDistance, double KeyPointFraction) {
     if (isTrained) {
+        QThread::msleep(1000);
         while (isStartMatch) {
             QCoreApplication::processEvents();
             readMutex.lock();
             hv_ObjectScene3DClone = hv_ObjectScene3D.Clone();
             readMutex.unlock();
-            FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3DClone, RelSamplingDistance, KeyPointFraction, 0.2, "false",
+            FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3DClone, RelSamplingDistance, KeyPointFraction, 0.25, "false",
                              ((HTuple("num_matches").Append("scene_normal_computation")).Append("pose_ref_scoring_dist_rel")),
-                             ((HTuple(3).Append("mls")).Append(0.03))
+                             ((HTuple(2).Append("mls")).Append(0.03))
                              , &hv_Pose, &hv_Score, &hv_SurfaceMatchingResultID);
-            RefineSurfaceModelPose(hv_SurfaceModelID, hv_ObjectScene3DClone, hv_Pose, 0, "false",
-                                   HTuple(), HTuple(), &hv_Pose1, &hv_Score1, &hv_SurfaceMatchingResultID1);
+/*            RefineSurfaceModelPose(hv_SurfaceModelID, hv_ObjectScene3DClone, hv_Pose, 0, "false",
+                                   HTuple(), HTuple(), &hv_Pose1, &hv_Score1, &hv_SurfaceMatchingResultID1);*/
             //再发回主线程
-            poseVar.setValue<HTuple>(hv_Pose1);
-            emit registerComplete(poseVar,hv_Score1.ToDArr()[0]);
+            poseVar.setValue<HTuple>(hv_Pose);
+            emit registerComplete(poseVar,hv_Score.ToDArr()[0]);
         }
     }
 }

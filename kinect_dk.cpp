@@ -7,7 +7,7 @@ kinect_dk::kinect_dk(QObject *parent) : QObject(parent) {
     isStartCapture = false;
     isConected = false;
     rgbdImage = nullptr;
-    if (!open3d::io::ReadIJsonConvertibleFromJSON("./config.json", sensor_config)) {
+    /*if (!open3d::io::ReadIJsonConvertibleFromJSON("./config.json", sensor_config)) {
         open3d::utility::LogError("Invalid sensor config");
         //return 1;
     }

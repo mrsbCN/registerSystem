@@ -12,23 +12,13 @@
 #include <QFuture>
 #include <QtConcurrent>
 #include <QIntValidator>
-#include <vtkPolyData.h>
-#include <vtkSTLReader.h>
-#include <vtkSmartPointer.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkInteractorStyleTrackballCamera.h>
-#include <vtkGenericOpenGLRenderWindow.h>
 
 #include <memory>
 #include <Open3D/Open3D.h>
 #include <Open3D/Registration/FastGlobalRegistration.h>
 #include "mesh2pcd.h"
-//#include "generatepoincloud.h"
 #include "kinect_dk.h"
+#include "kinect_thread.h"
 #include "ppfmatch.h"
 #include "surfacematch.h"
 
@@ -48,9 +38,8 @@ private:
     Ui::MainWindow *ui;
     bool isTabCameraStart, isTabContinueStart;
     QString CADFileName, modelFileName, sceneFileName;
-    QImage colorImg, depthImg;
     QThread m_kinectThread,m_surfaceMatchThread;
-    kinect_dk *m_kinectDK;
+    kinect_thread *m_kinect;
     PPFmatch *matcher;
     surfaceMatch *sfm;
     HTuple singleWindowHandle, continueWindowHandle;
@@ -59,6 +48,8 @@ private:
     HTuple *hv_ObjectScenePtr;
     QFuture<void> f;
     double matchScore;
+    QImage Img;
+    cv::Mat Rgb;
 
     void renderModel(const QString &fileName, HTuple &WindowHandle);
 
@@ -77,7 +68,11 @@ protected slots://槽函数
 
     void onBeginButtonClicked();
 
-    void TabCameraDisplay(const open3d::geometry::RGBDImage &rgbd);
+    void onSavePointCloudClicked();
+
+    void onSavePicClicked();
+
+    void TabCameraDisplay(int type,cv::Mat mat);
 
     void continueRead(const QString &pointCloudFile);
 
@@ -87,6 +82,10 @@ protected slots://槽函数
 
 signals://信号
     void startRunning();
+
+    void startSavePointCloud();
+
+    void startSavePic();
 
     void startRead();
 

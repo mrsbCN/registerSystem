@@ -8,6 +8,7 @@
 #include <QFuture>
 #include <QMutex>
 #include <QVariant>
+#include <QThread>
 #include <halconcpp/HalconCpp.h>
 #include <hdevengine/HDevEngineCpp.h>
 
