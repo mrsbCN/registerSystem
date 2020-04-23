@@ -65,8 +65,7 @@ private:
     k4a::image irImage,xy_table,point_cloud;
     cv::Mat depthFrame,colorFrame,irFrame;
     std::vector<double> point_x,point_y,point_z;
-    HTuple model3D;
-    HObject temp,tmpx,tmpy,tmpz;
+    HTuple tmpx,tmpy,tmpz,model3D;
     int point_count = 0;
     QVariant modelVar;
 

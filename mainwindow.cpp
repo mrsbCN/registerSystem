@@ -280,11 +280,12 @@ void MainWindow::continueRead(QVariant modelVar) {
 /*  ReadObjectModel3d(pointCloudFile.toStdString().c_str(), "mm", HTuple(), HTuple(), hv_ObjectScenePtr,
                       &hv_Status);*/
     sfm->readMutex.unlock();
+    if(isTabContinueStart)
+            emit startRead();
 /*  QFile fileTemp(pointCloudFile);
     fileTemp.remove();*/
     renderScene(false,continueWindowHandle);
-    if(isTabContinueStart)
-        emit startRead();
+
 }
 
 void MainWindow::renderModel(const QString &fileName, HTuple &WindowHandle) {

@@ -33,7 +33,6 @@ kinect_thread::kinect_thread(QObject *parent) : QObject(parent) {
                                      calibration.depth_camera_calibration.resolution_height,
                                      calibration.depth_camera_calibration.resolution_width *
                                      (int) sizeof(k4a_float3_t));
-    GenImageConst(&temp,"real",calibration.depth_camera_calibration.resolution_width,calibration.depth_camera_calibration.resolution_height);
 }
 
 kinect_thread::~kinect_thread() {
@@ -118,12 +117,16 @@ void kinect_thread::captureDepth() {
         if (device.get_capture(&capture)) {
             // Get a depth image
             qint64 time = QDateTime::currentMSecsSinceEpoch();
+            //QString fileName = "/home/mrsb/" + tr("%1").arg(time) + ".ply";
             depthImage = capture.get_depth_image();
             generate_point_cloud();
             modelVar.setValue<HTuple>(model3D);
             emit sendDepth(modelVar);
-/*            model3D.Clear();
-            modelVar.clear();*/
+            model3D.Clear();
+            modelVar.clear();
+            point_x.clear();
+            point_y.clear();
+            point_z.clear();
             std::cout<<QDateTime::currentMSecsSinceEpoch() - time<<std::endl;
         }
     }
@@ -161,34 +164,23 @@ void kinect_thread::create_xy_table() {
 void kinect_thread::generate_point_cloud() {
     int width = depthImage.get_width_pixels();
     int height = depthImage.get_height_pixels();
+
     uint16_t *depth_data = (uint16_t *) (void *) depthImage.get_buffer();
     k4a_float2_t *xy_table_data = (k4a_float2_t *) (void *) xy_table.get_buffer();
 
-    GenImageProto(temp, &tmpx, nan(""));
-    GenImageProto(temp, &tmpy, nan(""));
-    GenImageProto(temp, &tmpz, nan(""));
-    //point_count = 0;
-
-    for (int i = 0; i < height; ++i) {//行rows
-#if defined _OPENMP
-#pragma omp parallel for
-#endif
-        for (int j = 0; j < width; ++j) {
-            int loc = i*width+j;
-            if (depth_data[loc] > 100 && depth_data[loc] < 1500 && !isnan(xy_table_data[loc].xy.x) &&
-                !isnan(xy_table_data[loc].xy.y)) {
-                //++point_count;
-                SetGrayval(tmpx, i, j, (xy_table_data[loc].xy.x * (float) depth_data[loc])*0.001);
-                SetGrayval(tmpy, i, j, (xy_table_data[loc].xy.y * (float) depth_data[loc])*0.001);
-                SetGrayval(tmpz, i, j, ((float) depth_data[loc])*0.001);
-            }
+    point_count = 0;
+    for (int i = 0; i < width * height; i++) {
+        if (depth_data[i] >100 && depth_data[i] <1000 && !isnan(xy_table_data[i].xy.x) && !isnan(xy_table_data[i].xy.y)) {
+            point_x.push_back(xy_table_data[i].xy.x * (float) depth_data[i] * 0.001);
+            point_y.push_back(xy_table_data[i].xy.y * (float) depth_data[i] * 0.001);
+            point_z.push_back((float) depth_data[i] * 0.001);
+            (point_count)++;
         }
     }
-    //std::cout<<point_count<<std::endl;
-    XyzToObjectModel3d(tmpx, tmpy, tmpz, &model3D);
-    tmpx.Clear();
-    tmpy.Clear();
-    tmpz.Clear();
+    tmpx = HTuple(point_x.data(),point_count);
+    tmpy = HTuple(point_y.data(),point_count);
+    tmpz = HTuple(point_z.data(),point_count);
+    GenObjectModel3dFromPoints(tmpx,tmpy,tmpz,&model3D);
 }
 
 void kinect_thread::generate_point_cloud(const k4a::image depth_image) {
