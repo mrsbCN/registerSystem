@@ -53,7 +53,7 @@ private:
 
     void renderModel(const QString &fileName, HTuple &WindowHandle);
 
-    void renderScene(HTuple &WindowHandle);
+    void renderScene(bool isClickable,HTuple &WindowHandle);
 
 protected slots://槽函数
     void onStartCameraButtonClicked();
@@ -74,7 +74,7 @@ protected slots://槽函数
 
     void TabCameraDisplay(int type,cv::Mat mat);
 
-    void continueRead(const QString &pointCloudFile);
+    void continueRead(QVariant modelVar);
 
     void onRegisterComplete(QVariant Pose, double Score);
 

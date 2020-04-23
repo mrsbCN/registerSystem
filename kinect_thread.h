@@ -1,6 +1,3 @@
-//
-// Created by mrsb on 2020/4/20.
-//
 
 #ifndef REGISTER_KINECT_THREAD_H
 #define REGISTER_KINECT_THREAD_H
@@ -8,6 +5,7 @@
 #include <QObject>
 #include <QThread>
 #include <QDateTime>
+#include <QVariant>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc/types_c.h>
@@ -20,9 +18,14 @@
 #include <sstream>
 #include <omp.h>
 #include "Pixel.h"
+#include "surfacematch.h"
 #include "DepthPixelColorizer.h"
 #include "StaticImageProperties.h"
+#include <halconcpp/HalconCpp.h>
+#include <hdevengine/HDevEngineCpp.h>
 
+
+using namespace HalconCpp;
 class kinect_thread : public QObject {
 Q_OBJECT
 public:
@@ -35,7 +38,7 @@ signals:
 
     void sendFrame(int type,cv::Mat &mat);
 
-    void sendDepth(const QString &pointCloudFile);
+    void sendDepth(QVariant modelVar);
 
 public slots:
 
@@ -52,19 +55,21 @@ private:
     k4a::calibration calibration{};
     k4a_device_configuration_t config{};
     k4a::device device;
-    //k4a_device_t device;
-    //k4a_calibration_t calibration;
     std::vector<Pixel> depthTextureBuffer;
     uint8_t *irTextureBuffer{};
     uint8_t *colorTextureBuffer{};
 
     k4a::capture capture;
-    //k4a_capture_t capture;
     k4a::image depthImage;
     k4a::image colorImage;
     k4a::image irImage,xy_table,point_cloud;
     cv::Mat depthFrame,colorFrame,irFrame;
+    std::vector<double> point_x,point_y,point_z;
+    HTuple model3D;
+    HObject temp,tmpx,tmpy,tmpz;
     int point_count = 0;
+    QVariant modelVar;
+
 
     bool isStartCapture, isConected;
     uint8_t picNumber = 0;//记录储存照片张数
@@ -73,7 +78,8 @@ private:
     const char *irImg = "./irimg";
     const char *extension = ".png";
     void create_xy_table();
-    void generate_point_cloud(const k4a::image &depth_image);
+    void generate_point_cloud();
+    void generate_point_cloud(const k4a::image depth_image);
     void write_point_cloud(const char *file_name);
 };
 
