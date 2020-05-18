@@ -27,7 +27,7 @@ if (OPENMP_FOUND)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Core Widgets Concurrent X11Extras REQUIRED)
+find_package(Qt5 COMPONENTS Gui Core Widgets Concurrent X11Extras WebSockets REQUIRED)
 find_package(PCL 1.10.1 REQUIRED)
 find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake)
 find_package(OpenCV REQUIRED)
@@ -53,10 +53,10 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SRCFILE)
 
 # 通常这样设置就可以，如果你的项目包含qrc文件，那么需要将它们单独添加进来
 # 例如add_executable(test ${DIRS_SRCS} resources.qrc)
-add_executable(register ${SRCFILE} )
+add_executable(register ${SRCFILE})
 
 # 把对应Qt模块的库链接进程序
 target_link_libraries(register PUBLIC   Qt5::Gui Qt5::Core Qt5::Widgets
                                         Qt5::Concurrent Qt5::X11Extras
-                                        ${PCL_LIBRARIES} ${Open3D_LIBRARIES}
+                                        Qt5::WebSockets ${PCL_LIBRARIES} ${Open3D_LIBRARIES}
                                         ${halcon_libs} ${OpenCV_LIBRARIES} k4a::k4a)

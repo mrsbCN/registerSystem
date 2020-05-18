@@ -3585,7 +3585,9 @@ void surfaceMatch::train(QFuture<void> &f, HTuple &hv_ObjectModel3D, double RelS
     //Create surface model
     CreateSurfaceModel(hv_temp, RelSamplingDistance, "model_invert_normals", "true",
                        &hv_SurfaceModelID);
-    //CreateSurfaceModel(hv_ObjectModel3D, RelSamplingDistance, HTuple(), HTuple(), &hv_SurfaceModelID);
+/*
+    CreateSurfaceModel(hv_ObjectModel3D, RelSamplingDistance, HTuple(), HTuple(), &hv_SurfaceModelID);
+*/
 
     isTrained = true;
 }
@@ -3613,10 +3615,12 @@ void surfaceMatch::continueMatch(double RelSamplingDistance, double KeyPointFrac
             readMutex.lock();
             hv_ObjectScene3DClone = hv_ObjectScene3D.Clone();
             readMutex.unlock();
-            FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3DClone, RelSamplingDistance, KeyPointFraction, 0.1, "false",
+            FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3DClone, RelSamplingDistance, KeyPointFraction, 0.2, "false",
                              ((HTuple("num_matches").Append("scene_normal_computation")).Append("pose_ref_scoring_dist_rel")),
                              ((HTuple(1).Append("mls")).Append(0.03))
                              , &hv_Pose, &hv_Score, &hv_SurfaceMatchingResultID);
+/*            FindSurfaceModel(hv_SurfaceModelID, hv_ObjectScene3DClone, RelSamplingDistance, KeyPointFraction, 0.2, "false",
+                             HTuple("num_matches"),HTuple(1), &hv_Pose, &hv_Score, &hv_SurfaceMatchingResultID);*/
             RefineSurfaceModelPose(hv_SurfaceModelID, hv_ObjectScene3DClone, hv_Pose, 0, "false",
                                    HTuple(), HTuple(), &hv_Pose1, &hv_Score1, &hv_SurfaceMatchingResultID1);
             //再发回主线程

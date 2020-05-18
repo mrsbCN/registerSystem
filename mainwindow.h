@@ -21,6 +21,9 @@
 #include "kinect_thread.h"
 #include "ppfmatch.h"
 #include "surfacematch.h"
+#include "myWebsocketServer.h"
+#include "flatbuffers/flatbuffers.h"
+#include "SaveSchema_generated.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -50,6 +53,7 @@ private:
     double matchScore;
     QImage Img;
     cv::Mat Rgb;
+    myWebsocketServer *server;
 
     void renderModel(const QString &fileName, HTuple &WindowHandle);
 

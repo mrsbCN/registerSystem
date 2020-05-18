@@ -63,7 +63,7 @@ private:
     k4a::image depthImage;
     k4a::image colorImage;
     k4a::image irImage,xy_table,point_cloud;
-    cv::Mat depthFrame,colorFrame,irFrame;
+    cv::Mat depthFrame,depthFrameNoColorized,colorFrame,irFrame;
     std::vector<double> point_x,point_y,point_z;
     HTuple tmpx,tmpy,tmpz,model3D;
     int point_count = 0;
@@ -74,6 +74,7 @@ private:
     uint8_t picNumber = 0;//记录储存照片张数
     const char *colorImg = "./colorimg";
     const char *depthImg = "./depthimg";
+    const char *depthImgNoColorized = "./depthimgNoColorized";
     const char *irImg = "./irimg";
     const char *extension = ".png";
     void create_xy_table();

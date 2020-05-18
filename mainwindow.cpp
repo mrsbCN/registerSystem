@@ -24,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     sfm = new surfaceMatch();
 
     matcher = new PPFmatch();
+    server = new myWebsocketServer(8080,true);
     //m_kinectDK = new kinect_dk();
     m_kinect = new kinect_thread();
     isTabCameraStart = false;
@@ -61,7 +62,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_kinectThread.start();
     m_surfaceMatchThread.start(QThread::HighPriority);
-
 }
 
 MainWindow::~MainWindow() {
@@ -79,6 +79,7 @@ MainWindow::~MainWindow() {
     delete m_kinect;
     delete matcher;
     delete sfm;
+    delete server;
 }
 
 void MainWindow::onStartCameraButtonClicked() {
@@ -144,7 +145,7 @@ void MainWindow::onSelectPointCloudFileButtonClicked() {
             this,
             tr("open a PointCloud file."),
             "./",
-            tr("mesh files(*.stl *.pcd *.ply);;All files(*.*)"));
+            tr("mesh files(*.stl *.STL *.pcd *.ply);;All files(*.*)"));
     std::cout << modelFileName.toStdString() << std::endl;
     if (!modelFileName.isEmpty()) {
         double samplingStep = ui->lineEdit_3->text().toDouble();
@@ -332,20 +333,30 @@ void MainWindow::onRegisterComplete(QVariant Pose, double Score){
     matchPose = Pose.value<HTuple>();
     std::cout<<matchScore<<std::endl;
 
-    //renderScene(false,continueWindowHandle);
+    if(matchScore > 0.1)
+    {
+        flatbuffers::FlatBufferBuilder FlatBuilder(1024);
+        ExchangeSerialization::PoseDateBuilder PoseBuilder(FlatBuilder);
+        auto pose = ExchangeSerialization::Vec7(matchPose[0],matchPose[1],matchPose[2],
+                                                matchPose[3],matchPose[4],matchPose[5],matchPose[6]);
+        PoseBuilder.add_Pose(&pose);
+        PoseBuilder.add_Timestamp(QDateTime::currentMSecsSinceEpoch());
+        auto orc = PoseBuilder.Finish();
+        FlatBuilder.Finish(orc);
+        //qDebug() << FlatBuilder.GetSize();
+        QByteArray buf((char *) FlatBuilder.GetBufferPointer(), FlatBuilder.GetSize());
+        server->sendBinaryMessage(buf);
+    }
 }
 
 void MainWindow::test() {
-    QString FileName = QFileDialog::getOpenFileName(
-            this,
-            tr("open a CAD file."),
-            "./",
-            tr("mesh files(*.stl);;All files(*.*)"));//tr("images(*.png *jpeg *bmp);;video files(*.avi *.mp4 *.wmv);;All files(*.*)"));
-
-    ClearObjectModel3d(hv_ObjectModel3D);
-    ReadObjectModel3d(FileName.toStdString().c_str(), "mm", HTuple(), HTuple(), &hv_ObjectModel3D,
-                      &hv_Status);
-    visualize_object_model_3d(true,singleWindowHandle, hv_ObjectModel3D, HTuple(), HTuple(), HTuple(), HTuple(), HTuple(),
-                              HTuple(), HTuple(),
-                              &hv_PoseOut);
+    flatbuffers::FlatBufferBuilder FlatBuilder(1024);
+    ExchangeSerialization::PoseDateBuilder PoseBuilder(FlatBuilder);
+    auto pose = ExchangeSerialization::Vec7(1.1,2,3,4,5,6,7);
+    PoseBuilder.add_Pose(&pose);
+    PoseBuilder.add_Timestamp(123);
+    auto orc = PoseBuilder.Finish();
+    FlatBuilder.Finish(orc);
+    QByteArray buf("s");
+    server->sendBinaryMessage(buf);
 }

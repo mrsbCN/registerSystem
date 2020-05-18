@@ -10,6 +10,7 @@ kinect_thread::kinect_thread(QObject *parent) : QObject(parent) {
     deviceCount = k4a::device::get_installed_count();
     if (deviceCount == 0) {
         std::cout << "No K4A devices found." << std::endl;
+        return ;
     }
     device = k4a::device::open(K4A_DEVICE_DEFAULT);
     config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
@@ -51,6 +52,7 @@ void kinect_thread::savePic() {
         if (device.get_capture(&capture)) {
             colorImage = capture.get_color_image();
             depthImage = capture.get_depth_image();
+            //std::cout<<depthImage.get_stride_bytes()<<std::endl;
             irImage = capture.get_ir_image();
             ColorizeDepthImage(depthImage, DepthPixelColorizer::ColorizeBlueToRed,
                                GetDepthModeRange(config.depth_mode),
@@ -61,9 +63,12 @@ void kinect_thread::savePic() {
                                  depthTextureBuffer.data());
             colorFrame = cv::Mat(colorImage.get_height_pixels(), colorImage.get_width_pixels(), CV_8UC4,
                                  colorTextureBuffer);//BBBBBBBB GGGGGGGG RRRRRRRR AAAAAAAA
+            depthFrameNoColorized = cv::Mat(depthImage.get_height_pixels(), depthImage.get_width_pixels(), CV_16UC1,
+                                            depthImage.get_buffer());
             irFrame = cv::Mat(irImage.get_height_pixels(), irImage.get_width_pixels(), CV_16UC1, irTextureBuffer);
             cv::imwrite(colorImg + std::to_string(picNumber) + extension, colorFrame);
             cv::imwrite(depthImg + std::to_string(picNumber) + extension, depthFrame);
+            cv::imwrite(depthImgNoColorized + std::to_string(picNumber) + extension, depthFrameNoColorized);
             cv::imwrite(irImg + std::to_string(picNumber) + extension, irFrame);
             picNumber++;
         }
